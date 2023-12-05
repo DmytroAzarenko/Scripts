@@ -1,7 +1,7 @@
 ---
 - name: Install Java
-  hosts: web_app # що ми будемо підключати із hosts.ini
-  become: yes # бути super user
+  hosts: web_app
+  become: yes
   tasks:
     - name: Update apt package cache
       apt:
