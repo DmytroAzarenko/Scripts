@@ -16,9 +16,9 @@
   hosts: jenkins_slave
   become: yes
   vars:
-    jenkins_url: "http://your-jenkins-master-url/" # here
-    jenkins_secret: "your-jenkins-secret" # here
-    jenkins_agent_name: "your-agent-name" # here
+    jenkins_url: "http://your-jenkins-master-url/"
+    jenkins_secret: "your-jenkins-secret"
+    jenkins_agent_name: "your-agent-name"
   tasks:
     - name: Create Jenkins agent directory
       file:
