@@ -1,0 +1,60 @@
+---
+- name: Install Java
+  hosts: web_app # що ми будемо підключати із hosts.ini
+  become: yes # бути super user
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install OpenJDK
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
+- name: Download and extract WildFly
+  hosts: web_app
+  become: yes
+  vars:
+    wildfly_version: "22.0.0.Final"
+    wildfly_download_url: "https://download.jboss.org/wildfly/{{ wildfly_version }}/wildfly-{{ wildfly_version }}.tar.gz"
+    wildfly_installation_dir: "/opt/wildfly"
+  taska:
+    - name: Create WildFly installation directory
+      file:
+        path: "{{ wildfly_installation_dir }}"
+        state: directory
+
+    - name: Download WildFly
+      get_url:
+        url: "{{ wildfly_download_url }}"
+        dest: "/tmp/wildfly-{{ wildfly_version }}.tar.gz"
+
+    - name: Extract WildFly
+      ansible.builtin.unarchive:
+        src: "/tmp/wildfly-{{ wildfly_version }}.tar.gz"
+        dest: "{{ wildfly_installation_dir }}"
+        remote_src: yes
+      notify: 
+        - Start WildFly
+
+- name: Configure WildFly
+  hosts: all
+  become: yes
+  tasks:
+    - name: Set WildFly environment variables
+      lineinfile:
+        path: "/etc/environment"
+        line: "JBOSS_HOME={{ wildfly_installation_dir }}/wildfly-{{ wildfly_version }}"
+      notify:
+        - Restart Shell
+
+  handlers:
+    - name: Start WildFly
+      ansible.builtin.service:
+        name: wildfly
+        state: started
+        enabled: yes
+
+    - name: Restart Shell
+      ansible.builtin.command: "exec bash"
