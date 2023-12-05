@@ -1,45 +1,42 @@
 ---
-- hosts: web_app, jenkins # що ми будемо підключати із hosts.ini
-  become: yes # бути super user
+- hosts: web_app, jenkins
+  become: yes
   tasks:
     - name: Update repositories cache
-      ansible.builtin.apt: # модуль, який працює всередині ansible з apt
-        update_cache: yes # передаємо команду обновити кеш репозиторія
+      ansible.builtin.apt:
+        update_cache: yes
 
     - name: Install apache
       ansible.builtin.apt:
         name: apache2
-        state: present # дочекатись його виконання
+        state: present
     
     - name: Enable Apache mods
       ansible.builtin.shell: "a2enmod {{ item }}" 
-      # модуль інтерпретації командного рядка shell, де буде виконана команда apache enable mod (a2enmod) 
-      # item - це синтаксис ansible, який дозволяє виконувати циклічну операцію loop
       loop:
         - "proxy"
         - "proxy_http"
         - "ssl"
-      register: a2enmod # це реєстрація цієї команди
+      register: a2enmod
 
     - name: Check if /etc/apache2/ssl/ directory exists
-      ansible.builtin.stat: # цей модуль допомагає перевірити, чи щось існує
+      ansible.builtin.stat:
         path: /etc/apache2/ssl/
-      register: ssl_dir # за допомогою ssl_dir можна звертатися до інших команд з іншої таски
+      register: ssl_dir
 
     - name: Create directory /etc/apache2/ssl/
       ansible.builtin.file:
         path: /etc/apache2/ssl/
         state: directory
       when: ssl_dir.stat.exists == false
-      # створити директорію, коли статус ssl_dir == false
 
     - name: Generate private key for SSL
-      openssl_privatekey: # сторонній модуль
+      openssl_privatekey:
         path: /etc/apache2/ssl/apache.key
-        size: 2048 # створили приватний ключ
+        size: 2048 
       when: ssl_dir.stat.exists == false
 
-    - name: Create CSR # створюється сертифікат
+    - name: Create CSR
       openssl_csr:
         path: /etc/apache2/ssl/apache.crt
         privatekey_path: /etc/apache2/ssl/apache.key
@@ -52,13 +49,11 @@
         privatekey_path: /etc/apache2/ssl/apache.key
         csr_path: /etc/apache2/ssl/apache.crt
       when: ssl_dir.stat.exists == false
-      # тут ми створили self-crypted сертифікат на базі приватного ключа і згенерованого сертифікату
-      # і це виконалось за допомогою модуля openssl_certificate
 
     - name: Copy configuration to apache2
       ansible.builtin.copy:
-        src: ./files/000-default.conf # sources: копіюємо файл із папки files
-        dest: /etc/apache2/sites-available/000-default.conf # destination
+        src: ./files/000-default.conf 
+        dest: /etc/apache2/sites-available/000-default.conf 
 
     - name: Copy configuration to apache2
       ansible.builtin.copy:
